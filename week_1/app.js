@@ -105,7 +105,7 @@ async function analyzeSentiment(text) {
         'https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english',
         {
             headers: { 
-                Authorization: apiToken ? Bearer ${apiToken} : undefined,
+                Authorization: apiToken ? 'Bearer ${apiToken}' : undefined,
                 'Content-Type': 'application/json'
             },
             method: 'POST',
