@@ -102,14 +102,13 @@ function analyzeRandomReview() {
 // Call Hugging Face API for sentiment analysis
 async function analyzeSentiment(text) {
     const response = await fetch(
-        'https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english',
+        'https://huggingface.co/spaces/rhymesai/sentiment-analysis-test/api/predict',
         {
             headers: { 
-                Authorization: apiToken ? `Bearer ${apiToken}` : undefined,
                 'Content-Type': 'application/json'
             },
             method: 'POST',
-            body: JSON.stringify({ inputs: text }),
+            body: JSON.stringify({ data: [text] }),
         }
     );
     
@@ -118,7 +117,7 @@ async function analyzeSentiment(text) {
     }
     
     const result = await response.json();
-    return result;
+    return [[{ label: result[0] === 1 ? 'POSITIVE' : 'NEGATIVE', score: Math.abs(result[0] - 0.5) * 2 }]];
 }
 
 // Display sentiment result
