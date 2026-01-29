@@ -118,48 +118,29 @@ function analyzeRandomReview() {
 }
 
 // Вызов Hugging Face API для анализа тональности
-async function analyzeSentiment(text) {
-    console.log('Отправляю запрос к Hugging Face API...');
-    
-    // Ключевое изменение: используем публичную CORS-прокси
-    const proxyUrl = 'https://corsproxy.io/?';
-    const apiUrl = 'https://api-inference.huggingface.co/models/distilbert/distilbert-base-uncased-finetuned-sst-2-english';
-    
-    const headers = {
+export default async function handler(request, response) {
+  const { text, token } = await request.json();
+  
+  const huggingfaceResponse = await fetch(
+    'https://api-inference.huggingface.co/models/distilbert/distilbert-base-uncased-finetuned-sst-2-english',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token || process.env.HF_TOKEN}`,
         'Content-Type': 'application/json',
-        'Authorization': apiToken ? `Bearer ${apiToken}` : undefined
-    };
-    
-    try {
-        const response = await fetch(proxyUrl + encodeURIComponent(apiUrl), {
-            method: 'POST',
-            headers: headers,
-            body: JSON.stringify({ inputs: text })
-        });
-        
-        console.log('Статус ответа API:', response.status);
-        
-        if (!response.ok) {
-            // Проверяем, является ли ошибка связанной с загрузкой модели
-            if (response.status === 503) {
-                const errorData = await response.json();
-                if (errorData.error && errorData.error.includes('loading')) {
-                    throw new Error('Модель загружается. Попробуйте через 10-20 секунд.');
-                }
-            }
-            throw new Error(`Ошибка API: ${response.status} ${response.statusText}`);
-        }
-        
-        const result = await response.json();
-        console.log('Успешный ответ API:', result);
-        return result;
-        
-    } catch (error) {
-        console.error('Ошибка сети/запроса:', error);
-        throw error;
+      },
+      body: JSON.stringify({ inputs: text }),
     }
+  );
+  
+  const data = await huggingfaceResponse.json();
+  
+  response.setHeader('Access-Control-Allow-Origin', '*');
+  response.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  response.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  response.status(200).json(data);
 }
-
 // Отображение результата анализа тональности
 function displaySentiment(result) {
     let sentiment = 'neutral';
