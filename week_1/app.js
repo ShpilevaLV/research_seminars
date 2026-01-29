@@ -100,6 +100,26 @@ function analyzeRandomReview() {
 }
 
 // Call Hugging Face API for sentiment analysis
+async function analyzeSentiment(text) {
+    const response = await fetch(
+        'https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english',
+        {
+            headers: { 
+                Authorization: apiToken ? `Bearer ${apiToken}` : undefined,
+                'Content-Type': 'application/json'
+            },
+            method: 'POST',
+            body: JSON.stringify({ inputs: text }),
+        }
+    );
+    
+    if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+    
+    const result = await response.json();
+    return result;
+}
 
 // Display sentiment result
 function displaySentiment(result) {
@@ -121,54 +141,6 @@ function displaySentiment(result) {
             sentiment = 'negative';
         }
     }
-async function analyzeSentiment(text) {
-    const response = await fetch(
-        'https://api-inference.huggingface.co/models/distilbert/distilbert-base-uncased-finetuned-sst-2-english',
-        {
-            headers: { 
-                Authorization: apiToken ? `Bearer ${apiToken}` : undefined,
-                'Content-Type': 'application/json'
-            },
-            method: 'POST',
-            body: JSON.stringify({ inputs: text }),
-        }
-    );
-    
-    if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
-    }
-    
-    const result = await response.json();
-    return result;
-}
-
-// В функции displaySentiment обнови логику:
-function displaySentiment(result) {
-    let sentiment = 'neutral';
-    let score = 0.5;
-    let label = 'NEUTRAL';
-    
-    if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0]) && result[0].length > 0) {
-        const sentimentData = result[0][0];
-        label = sentimentData.label?.toUpperCase() || 'NEUTRAL';
-        score = sentimentData.score ?? 0.5;
-        
-        // Определяем sentiment на основе label
-        if (label === 'POSITIVE') {
-            sentiment = 'positive';
-        } else if (label === 'NEGATIVE') {
-            sentiment = 'negative';
-        }
-    }
-    
-    // Обновляем UI
-    sentimentResult.classList.add(sentiment);
-    sentimentResult.innerHTML = `
-        <i class="fas ${getSentimentIcon(sentiment)} icon"></i>
-        <span>${sentiment.toUpperCase()} (${(score * 100).toFixed(1)}% confidence)</span>
-    `;
-}
-
     
     // Update UI
     sentimentResult.classList.add(sentiment);
