@@ -98,6 +98,8 @@ async function analyzeRandomReview() {
 }
 
 async function analyzeSentiment(text) {
+    console.log('Calling HF API...'); // Debug
+    
     const headers = { 
         'Content-Type': 'application/json'
     };
@@ -105,21 +107,29 @@ async function analyzeSentiment(text) {
         headers.Authorization = `Bearer ${apiToken}`;
     }
     
-    const response = await fetch(
-        'https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english',
-        {
-            headers,
-            method: 'POST',
-            body: JSON.stringify({ inputs: text })
+    try {
+        const response = await fetch(
+            'https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english', // ✅ Быстрая модель
+            {
+                headers,
+                method: 'POST',
+                body: JSON.stringify({ inputs: text.slice(0, 512) }) // ✅ Обрезаем до 512 токенов
+            }
+        );
+        
+        console.log('API response status:', response.status); // Debug
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API error details:', errorText);
+            throw new Error(`API ${response.status}: ${errorText.slice(0,100)}`);
         }
-    );
-    
-    if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API ${response.status}: ${errorText}`);
+        
+        return await response.json();
+    } catch (error) {
+        console.error('Fetch error:', error);
+        throw error;
     }
-    
-    return await response.json();
 }
 
 function displaySentiment(result) {
