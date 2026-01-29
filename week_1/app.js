@@ -12,7 +12,7 @@ const apiTokenInput = document.getElementById('api-token');
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
-    // Load the TSV file
+    // Load the TSV file (Papa Parse 활성화)
     loadReviews();
     
     // Set up event listeners
@@ -39,15 +39,10 @@ function loadReviews() {
                 header: true,
                 delimiter: '\t',
                 complete: (results) => {
-                    // Store both text and sentiment from TSV
                     reviews = results.data
-                        .map(row => ({
-                            text: row.text,
-                            sentiment: parseInt(row.sentiment) || 0,
-                            summary: row.summary || ''
-                        }))
-                        .filter(item => item.text && item.text.trim() !== '');
-                    console.log('Loaded', reviews.length, 'reviews with sentiment data');
+                        .map(row => row.text)
+                        .filter(text => text && text.trim() !== '');
+                    console.log('Loaded', reviews.length, 'reviews');
                 },
                 error: (error) => {
                     console.error('TSV parse error:', error);
@@ -72,7 +67,7 @@ function saveApiToken() {
 }
 
 // Analyze a random review
-async function analyzeRandomReview() {
+function analyzeRandomReview() {
     hideError();
     
     if (reviews.length === 0) {
@@ -83,45 +78,34 @@ async function analyzeRandomReview() {
     const selectedReview = reviews[Math.floor(Math.random() * reviews.length)];
     
     // Display the review
-    reviewText.textContent = selectedReview.text;
+    reviewText.textContent = selectedReview;
     
     // Show loading state
     loadingElement.style.display = 'block';
     analyzeBtn.disabled = true;
-    sentimentResult.innerHTML = '';
-    sentimentResult.className = 'sentiment-result';
+    sentimentResult.innerHTML = '';  // Reset previous result
+    sentimentResult.className = 'sentiment-result';  // Reset classes
     
-    try {
-        // First try to use Hugging Face API if token is provided
-        if (apiToken) {
-            try {
-                const result = await analyzeWithHuggingFace(selectedReview.text);
-                displaySentiment(result, true);
-            } catch (apiError) {
-                console.warn('Hugging Face API failed, falling back to local analysis:', apiError);
-                // Fall back to local sentiment analysis
-                analyzeLocally(selectedReview);
-            }
-        } else {
-            // No token, use local analysis
-            analyzeLocally(selectedReview);
-        }
-    } catch (error) {
-        console.error('Analysis error:', error);
-        showError('Failed to analyze sentiment. Please try again.');
-    } finally {
-        loadingElement.style.display = 'none';
-        analyzeBtn.disabled = false;
-    }
+    // Call Hugging Face API
+    analyzeSentiment(selectedReview)
+        .then(result => displaySentiment(result))
+        .catch(error => {
+            console.error('Error:', error);
+            showError('Failed to analyze sentiment: ' + error.message);
+        })
+        .finally(() => {
+            loadingElement.style.display = 'none';
+            analyzeBtn.disabled = false;
+        });
 }
 
-// Try to analyze with Hugging Face API
-async function analyzeWithHuggingFace(text) {
+// Call Hugging Face API for sentiment analysis
+async function analyzeSentiment(text) {
     const response = await fetch(
-        'https://api-inference.huggingface.co/models/distilbert-base-uncased-finetuned-sst-2-english',
+        'https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english',
         {
             headers: { 
-                Authorization: apiToken ? `Bearer ${apiToken}` : '',
+                Authorization: apiToken ? `Bearer ${apiToken}` : undefined,
                 'Content-Type': 'application/json'
             },
             method: 'POST',
@@ -133,72 +117,36 @@ async function analyzeWithHuggingFace(text) {
         throw new Error(`API error: ${response.status} ${response.statusText}`);
     }
     
-    return await response.json();
-}
-
-// Analyze sentiment locally using data from TSV
-function analyzeLocally(review) {
-    // Use the sentiment from TSV data (1 = positive, -1 = negative)
-    let sentiment, label, confidence;
-    
-    if (review.sentiment === 1) {
-        sentiment = 'positive';
-        label = 'POSITIVE';
-        confidence = 0.95; // High confidence for clear sentiment
-    } else if (review.sentiment === -1) {
-        sentiment = 'negative';
-        label = 'NEGATIVE';
-        confidence = 0.90; // High confidence for clear sentiment
-    } else {
-        sentiment = 'neutral';
-        label = 'NEUTRAL';
-        confidence = 0.50;
-    }
-    
-    displaySentiment({
-        label: label,
-        score: confidence,
-        source: 'local'
-    }, false);
+    const result = await response.json();
+    return result;
 }
 
 // Display sentiment result
-function displaySentiment(result, fromAPI = true) {
-    let sentiment, label, score;
+function displaySentiment(result) {
+    // Default to neutral if we can't parse the result
+    let sentiment = 'neutral';
+    let score = 0.5;
+    let label = 'NEUTRAL';
     
-    if (fromAPI) {
-        // Parse API response
-        if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0]) && result[0].length > 0) {
-            const sentimentData = result[0][0];
-            label = sentimentData.label?.toUpperCase() || 'NEUTRAL';
-            score = sentimentData.score ?? 0.5;
-            
-            // Determine sentiment
-            if (label === 'POSITIVE' && score > 0.5) {
-                sentiment = 'positive';
-            } else if (label === 'NEGATIVE' && score > 0.5) {
-                sentiment = 'negative';
-            } else {
-                sentiment = 'neutral';
-            }
-        } else {
-            sentiment = 'neutral';
-            label = 'NEUTRAL';
-            score = 0.5;
+    // Parse the API response (format: [[{label: 'POSITIVE', score: 0.99}]])
+    if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0]) && result[0].length > 0) {
+        const sentimentData = result[0][0];
+        label = sentimentData.label?.toUpperCase() || 'NEUTRAL';
+        score = sentimentData.score ?? 0.5;
+        
+        // Determine sentiment
+        if (label === 'POSITIVE' && score > 0.5) {
+            sentiment = 'positive';
+        } else if (label === 'NEGATIVE' && score > 0.5) {
+            sentiment = 'negative';
         }
-    } else {
-        // Local analysis result
-        label = result.label;
-        score = result.score;
-        sentiment = result.label.toLowerCase();
     }
     
     // Update UI
     sentimentResult.classList.add(sentiment);
-    const sourceIndicator = fromAPI ? '' : ' (from TSV data)';
     sentimentResult.innerHTML = `
         <i class="fas ${getSentimentIcon(sentiment)} icon"></i>
-        <span>${label} (${(score * 100).toFixed(1)}% confidence${sourceIndicator})</span>
+        <span>${label} (${(score * 100).toFixed(1)}% confidence)</span>
     `;
 }
 
