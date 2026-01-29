@@ -102,10 +102,10 @@ function analyzeRandomReview() {
 // Call Hugging Face API for sentiment analysis
 async function analyzeSentiment(text) {
     const response = await fetch(
-        'https://api-inference.huggingface.co/models/distilbert/distilbert-base-uncased-finetuned-sst-2-english',
+        'https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english',
         {
             headers: { 
-                Authorization: apiToken ? `Bearer ${apiToken}` : undefined,
+                Authorization: apiToken ? Bearer ${apiToken} : undefined,
                 'Content-Type': 'application/json'
             },
             method: 'POST',
@@ -123,28 +123,30 @@ async function analyzeSentiment(text) {
 
 // Display sentiment result
 function displaySentiment(result) {
+    // Default to neutral if we can't parse the result
     let sentiment = 'neutral';
     let score = 0.5;
     let label = 'NEUTRAL';
     
+    // Parse the API response (format: [[{label: 'POSITIVE', score: 0.99}]])
     if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0]) && result[0].length > 0) {
         const sentimentData = result[0][0];
         label = sentimentData.label?.toUpperCase() || 'NEUTRAL';
         score = sentimentData.score ?? 0.5;
         
-        // Определяем sentiment на основе label
-        if (label === 'POSITIVE') {
+        // Determine sentiment
+        if (label === 'POSITIVE' && score > 0.5) {
             sentiment = 'positive';
-        } else if (label === 'NEGATIVE') {
+        } else if (label === 'NEGATIVE' && score > 0.5) {
             sentiment = 'negative';
         }
     }
     
-    // Обновляем UI
+    // Update UI
     sentimentResult.classList.add(sentiment);
     sentimentResult.innerHTML = `
         <i class="fas ${getSentimentIcon(sentiment)} icon"></i>
-        <span>${sentiment.toUpperCase()} (${(score * 100).toFixed(1)}% confidence)</span>
+        <span>${label} (${(score * 100).toFixed(1)}% confidence)</span>
     `;
 }
 
