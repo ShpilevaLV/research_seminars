@@ -1,3 +1,37 @@
+### Fix the issue of loading fake data!
+
+### Step 1. Bug analysis prompt
+
+Prompt:
+"Analyze this JavaScript code running on GitHub Pages.
+The fetch request to Hugging Face Inference API fails with a CORS error.
+Explain why this happens and whether it can be fixed on frontend-only side."
+
+---
+
+### Step 2. Solution design prompt
+
+Prompt:
+"Suggest a frontend-only solution for GitHub Pages to handle Hugging Face API CORS limitations.
+The solution must not use any backend and should keep the UI functional."
+
+---
+
+### Step 3. Code generation prompt
+
+Prompt:
+"Modify the analyzeSentiment function to gracefully handle Hugging Face API CORS errors.
+If the request fails, return a mock response that matches the HF API output format
+[[{ label: 'POSITIVE', score: number }]]."
+
+---
+
+### Step 4. Additional bug fixing
+
+Prompt:
+"Review this JavaScript fetch request and check if Authorization header is correctly formatted."
+
+
 ### Prompt for Generating a Web App Code in DeepSeek Chat
 
 **Objective:**  
