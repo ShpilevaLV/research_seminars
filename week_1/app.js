@@ -12,12 +12,13 @@ const apiTokenInput = document.getElementById('api-token');
 
 // Initialize the app
 document.addEventListener('DOMContentLoaded', function() {
-    // Load the TSV file (Papa Parse 활성화)
+    // Load the TSV file
     loadReviews();
     
     // Set up event listeners
     analyzeBtn.addEventListener('click', analyzeRandomReview);
     apiTokenInput.addEventListener('change', saveApiToken);
+    apiTokenInput.addEventListener('input', saveApiToken);
     
     // Load saved API token if exists
     const savedToken = localStorage.getItem('hfApiToken');
@@ -83,10 +84,10 @@ function analyzeRandomReview() {
     // Show loading state
     loadingElement.style.display = 'block';
     analyzeBtn.disabled = true;
-    sentimentResult.innerHTML = '';  // Reset previous result
-    sentimentResult.className = 'sentiment-result';  // Reset classes
+    sentimentResult.innerHTML = '';
+    sentimentResult.className = 'sentiment-result';
     
-    // Call Hugging Face API
+    // Call sentiment analysis
     analyzeSentiment(selectedReview)
         .then(result => displaySentiment(result))
         .catch(error => {
@@ -99,45 +100,95 @@ function analyzeRandomReview() {
         });
 }
 
-// Call Hugging Face API for sentiment analysis
+// Sentiment analysis function (with fallback)
 async function analyzeSentiment(text) {
-    try {
-        const response = await fetch(
-            'https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english',
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    ...(apiToken && { Authorization: `Bearer ${apiToken}` })
-                },
-                body: JSON.stringify({ inputs: text })
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error('HF API request failed');
-        }
-
-        return await response.json();
-    } catch (error) {
-        console.warn('Using fake sentiment response due to CORS:', error);
-
-        // FAKE DATA fallback (Homework requirement)
-        return [[{
-            label: Math.random() > 0.5 ? 'POSITIVE' : 'NEGATIVE',
-            score: 0.6 + Math.random() * 0.4
-        }]];
+    // Try Hugging Face API first
+    const url = "https://router.huggingface.co/models/siebert/sentiment-roberta-large-english";
+    const headers = {
+        "Content-Type": "application/json"
+    };
+    
+    if (apiToken && apiToken.trim() !== '') {
+        headers["Authorization"] = `Bearer ${apiToken}`;
     }
+    
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify({ inputs: text })
+        });
+
+        if (response.ok) {
+            return await response.json();
+        } else {
+            // If API returns error, use local analysis
+            console.log('API returned error, using local analysis');
+            return generateLocalSentiment(text);
+        }
+    } catch (error) {
+        // If fetch fails (CORS, network error), use local analysis
+        console.log('Network error, using local analysis:', error.message);
+        return generateLocalSentiment(text);
+    }
+}
+
+// Generate local sentiment analysis
+function generateLocalSentiment(text) {
+    const lowerText = text.toLowerCase();
+    
+    // Keywords for sentiment analysis
+    const positiveWords = ['good', 'great', 'excellent', 'love', 'best', 'recommend', 'happy', 
+                          'perfect', 'awesome', 'wonderful', 'fantastic', 'amazing', 'tasty', 
+                          'delicious', 'satisfied', 'liked', 'enjoyed', 'pleased'];
+    
+    const negativeWords = ['bad', 'terrible', 'worst', 'hate', 'disappointed', 'poor', 'waste',
+                          'awful', 'horrible', 'dislike', 'broken', 'damaged', 'fake', 'scam',
+                          'problem', 'issue', 'difficult', 'hard', 'expensive'];
+    
+    let positiveScore = 0;
+    let negativeScore = 0;
+    
+    // Count positive words
+    positiveWords.forEach(word => {
+        const regex = new RegExp(`\\b${word}\\b`, 'gi');
+        const matches = lowerText.match(regex);
+        if (matches) positiveScore += matches.length;
+    });
+    
+    // Count negative words
+    negativeWords.forEach(word => {
+        const regex = new RegExp(`\\b${word}\\b`, 'gi');
+        const matches = lowerText.match(regex);
+        if (matches) negativeScore += matches.length;
+    });
+    
+    // Determine sentiment
+    let label, score;
+    
+    if (positiveScore > negativeScore) {
+        label = "POSITIVE";
+        score = 0.7 + (Math.random() * 0.25); // 0.7-0.95
+    } else if (negativeScore > positiveScore) {
+        label = "NEGATIVE";
+        score = 0.7 + (Math.random() * 0.25); // 0.7-0.95
+    } else {
+        // Equal or no keywords found
+        label = Math.random() > 0.5 ? "POSITIVE" : "NEGATIVE";
+        score = 0.55 + (Math.random() * 0.3); // 0.55-0.85
+    }
+    
+    // Return in Hugging Face format
+    return [[{ label, score }]];
 }
 
 // Display sentiment result
 function displaySentiment(result) {
-    // Default to neutral if we can't parse the result
     let sentiment = 'neutral';
     let score = 0.5;
     let label = 'NEUTRAL';
     
-    // Parse the API response (format: [[{label: 'POSITIVE', score: 0.99}]])
+    // Parse the API response
     if (Array.isArray(result) && result.length > 0 && Array.isArray(result[0]) && result[0].length > 0) {
         const sentimentData = result[0][0];
         label = sentimentData.label?.toUpperCase() || 'NEUTRAL';
