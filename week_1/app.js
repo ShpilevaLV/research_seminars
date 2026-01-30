@@ -102,33 +102,44 @@ function analyzeRandomReview() {
 
 // Sentiment analysis function (with fallback)
 async function analyzeSentiment(text) {
-    // Try Hugging Face API first
-    const url = "https://router.huggingface.co/models/siebert/sentiment-roberta-large-english";
+    // Updated endpoint for the new Inference Providers API
+    const API_URL = 'https://router.huggingface.co/v1/chat/completions';
+    
     const headers = {
-        "Content-Type": "application/json"
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiToken}` // Use your Hugging Face token
     };
     
-    if (apiToken && apiToken.trim() !== '') {
-        headers["Authorization"] = `Bearer ${apiToken}`;
-    }
-    
     try {
-        const response = await fetch(url, {
-            method: "POST",
+        const response = await fetch(API_URL, {
+            method: 'POST',
             headers: headers,
-            body: JSON.stringify({ inputs: text })
+            body: JSON.stringify({
+                model: "siebert/sentiment-roberta-large-english", // Specify model here
+                messages: [
+                    {
+                        role: "user",
+                        content: `Analyze the sentiment of this review: "${text}"`
+                    }
+                ],
+                max_tokens: 10 // Limit the response length
+            })
         });
 
-        if (response.ok) {
-            return await response.json();
-        } else {
-            // If API returns error, use local analysis
-            console.log('API returned error, using local analysis');
-            return generateLocalSentiment(text);
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error:', response.status, errorText);
+            throw new Error(`API error: ${response.status}`);
         }
+
+        const result = await response.json();
+        // You will need to parse the new response format here
+        console.log('API Success:', result);
+        return result;
+        
     } catch (error) {
-        // If fetch fails (CORS, network error), use local analysis
-        console.log('Network error, using local analysis:', error.message);
+        console.error('API call failed, falling back:', error.message);
+        // Fallback to your local analysis function
         return generateLocalSentiment(text);
     }
 }
