@@ -71,7 +71,7 @@ Prompt:
 Prompt:
 "Review this JavaScript fetch request used to call the Hugging Face Inference API and check if the Authorization header is correctly formatted as a Bearer token:
 
-`
+```
 javascript
 
 async function analyzeSentiment(text) {
@@ -107,7 +107,7 @@ async function analyzeSentiment(text) {
         return [[{ label, score }]];
     }
 }
-`
+```
 
 ---
 
