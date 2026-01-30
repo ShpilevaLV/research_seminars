@@ -66,10 +66,10 @@ Prompt:
 
 ---
 
-#### Step 4. Additional bug fixing
+#### Step 4. Code review
 
 Prompt:
-"Review this JavaScript fetch request used to call the Hugging Face Inference API and check if the Authorization header is correctly formatted as a Bearer token:
+"Review this JavaScript fetch request used to call the Hugging Face Inference API and check if it's is correctly formatted:
 
 ```
 javascript
