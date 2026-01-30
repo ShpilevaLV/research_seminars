@@ -1,9 +1,12 @@
 ### Fix the issue of loading fake data!
 
+---
+
 #### STEP 1. Bug analysis prompt (role + requirements + expected output)
 
 **Prompt**:
 "You are an expert front-end developer analyzing a static sentiment analysis web app deployed on GitHub Pages. The app runs entirely in the browser (HTML + JavaScript only) and calls the Hugging Face Inference API at https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english from the origin https://shpilevalv.github.io. 
+
 In the attached files you can find the full project structure and code from the repository https://github.com/ShpilevaLV/research_seminars/tree/main/week_1.
 
 In the browser console yo see the following CORS error:
@@ -68,23 +71,39 @@ Prompt:
 Prompt:
 "Review this JavaScript fetch request used to call the Hugging Face Inference API and check if the Authorization header is correctly formatted as a Bearer token:
 
-`js
-async function analyzeSentiment(text) {
-    const response = await fetch(
-        'https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english',
-        {
-            headers: {
-                Authorization: apiToken ?
-                    Bearer ${apiToken}
-                    : undefined,
-                'Content-Type': 'application/json'
-            },
-            method: 'POST',
-            body: JSON.stringify({ inputs: text }),
+`async function analyzeSentiment(text) {
+    const url = "https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english";
+    const headers = {
+        "Content-Type": "application/json"
+    };
+    if (apiToken) headers["Authorization"] = Bearer ${apiToken};
+
+    try {
+        const response = await fetch(url, {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify({ inputs: text })
+        });
+
+        if (!response.ok) {
+            throw new Error(API error: ${response.status} ${response.statusText});
         }
-    );
-    // ...
-}
+
+        // Expected HF format: [[{label: "POSITIVE", score: 0.99}]]
+        return await response.json();
+    } catch (error) {
+        console.warn("Falling back to fake sentiment due to network/CORS issue:", error);
+
+        // Simple local fake sentiment generator
+        const random = Math.random();
+        let label = "NEUTRAL";
+        let score = 0.5;
+        if (random > 0.66) { label = "POSITIVE"; score = 0.95; }
+        else if (random < 0.33) { label = "NEGATIVE"; score = 0.90; }
+
+        return [[{ label, score }]];
+    }
+}`
 
 ---
 
