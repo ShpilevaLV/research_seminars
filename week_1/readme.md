@@ -5,6 +5,7 @@
 #### STEP 1. Bug analysis prompt (role + requirements + expected output)
 
 **Prompt**:
+
 "You are an expert front-end developer analyzing a static sentiment analysis web app deployed on GitHub Pages. The app runs entirely in the browser (HTML + JavaScript only) and calls the Hugging Face Inference API at https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english from the origin https://shpilevalv.github.io. 
 
 In the attached files you can find the full project structure and code from the repository https://github.com/ShpilevaLV/research_seminars/tree/main/week_1.
@@ -30,6 +31,7 @@ No code changes are required in this step, only reasoning."
 #### STEP 2. Solution design prompt
 
 **Prompt**:
+
 "Suggest a frontend-only solution for a GitHub Pages sentiment analysis app to handle Hugging Face API CORS limitations.  
 
 **Constraints**:  
@@ -49,7 +51,8 @@ No code changes are required in this step, only reasoning."
 
 #### STEP 3. Code generation prompt
 
-Prompt:
+**Prompt**:
+
 "Modify the analyzeSentiment function in app.js to gracefully handle Hugging Face API CORS errors, without changing any other parts of the app.
 
 **Requirements**:  
@@ -68,7 +71,8 @@ Prompt:
 
 #### Step 4. Code review
 
-Prompt:
+**Prompt**:
+
 "Review this JavaScript fetch request used to call the Hugging Face Inference API and check if it's is correctly formatted:
 
 ```
