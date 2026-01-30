@@ -2,7 +2,7 @@
 
 ---
 
-#### STEP 1. Bug analysis prompt (role + requirements + expected output)
+#### ✅ STEP 1. Bug analysis prompt (role + requirements + expected output)
 
 _**Prompt**:_
 
@@ -28,7 +28,7 @@ No code changes are required in this step, only reasoning."
 
 ---
 
-#### STEP 2. Solution design prompt
+#### ✅ STEP 2. Solution design prompt
 
 _**Prompt**:_
 
@@ -49,7 +49,7 @@ _**Prompt**:_
 
 ---
 
-#### STEP 3. Code generation prompt
+#### ✅ STEP 3. Code generation prompt
 
 _**Prompt**:_
 
@@ -69,7 +69,7 @@ _**Prompt**:_
 
 ---
 
-#### Step 4. Code review
+#### ✅ Step 4. Code review
 
 _**Prompt**:_
 
