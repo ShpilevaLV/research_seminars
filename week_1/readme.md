@@ -71,7 +71,10 @@ Prompt:
 Prompt:
 "Review this JavaScript fetch request used to call the Hugging Face Inference API and check if the Authorization header is correctly formatted as a Bearer token:
 
-`async function analyzeSentiment(text) {
+`
+javascript
+
+async function analyzeSentiment(text) {
     const url = "https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english";
     const headers = {
         "Content-Type": "application/json"
@@ -103,7 +106,8 @@ Prompt:
 
         return [[{ label, score }]];
     }
-}`
+}
+`
 
 ---
 
