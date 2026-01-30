@@ -104,7 +104,7 @@ Prompt:
         return [[{ label, score }]];
     }
 }`
-``
+
 ---
 
 ### Prompt for Generating a Web App Code in DeepSeek Chat
