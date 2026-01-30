@@ -1,35 +1,90 @@
 ### Fix the issue of loading fake data!
 
-#### STEP 1. Bug analysis prompt
+#### STEP 1. Bug analysis prompt (role + requirements + expected output)
 
-Prompt:
-"Analyze this JavaScript code running on GitHub Pages.
-The fetch request to Hugging Face Inference API fails with a CORS error.
-Explain why this happens and whether it can be fixed on frontend-only side."
+**Prompt**:
+"You are an expert front-end developer analyzing a static sentiment analysis web app deployed on GitHub Pages. The app runs entirely in the browser (HTML + JavaScript only) and calls the Hugging Face Inference API at https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english from the origin https://shpilevalv.github.io. 
+In the attached files you can find the full project structure and code from the repository https://github.com/ShpilevaLV/research_seminars/tree/main/week_1.
+
+In the browser console yo see the following CORS error:
+Access to fetch at 'https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english' from origin 'https://shpilevalv.github.io' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+
+**Requirements**:
+Consider that you cannot modify Hugging Face server settings and you cannot add any backend to my GitHub Pages app.
+Assume the request is performed with fetch directly from the browser.
+
+**Explain in detail**:
+Why this CORS error happens in a frontend-only JavaScript app hosted on GitHub Pages?
+Who controls and sends the CORS headers in this situation?
+Whether this problem can be fully solved from the frontend side only, and why or why not?
+
+**Expected output**:
+A clear, structured explanation (1–3 paragraphs or a short bullet list) describing the root cause of the CORS error and the limitations of frontend-only fixes.
+No code changes are required in this step, only reasoning."
 
 ---
 
 #### STEP 2. Solution design prompt
 
-Prompt:
-"Suggest a frontend-only solution for GitHub Pages to handle Hugging Face API CORS limitations.
-The solution must not use any backend and should keep the UI functional."
+**Prompt**:
+"Suggest a frontend-only solution for a GitHub Pages sentiment analysis app to handle Hugging Face API CORS limitations.  
+
+**Constraints**:  
+- The solution must not use any backend, custom proxy, or server-side code.  
+- The app must remain a static site (HTML + JavaScript only) hosted on GitHub Pages.  
+- The UI should stay functional: the user clicks a button, sees a random review, and sees a sentiment result.
+
+**Describe**:  
+- Why typical CORS workarounds like custom proxies are not acceptable in this context.  
+- How to keep the app usable by falling back to a mock sentiment result when the real Hugging Face request fails (for example, due to CORS).  
+- How this behaviour should be integrated into the existing analyzeSentiment(text) flow.
+
+**Expected output**:  
+- A short, high-level design description (2–5 paragraphs or bullet points) explaining the chosen frontend-only approach, including the idea of returning fake data when the real API cannot be called successfully."
 
 ---
 
 #### STEP 3. Code generation prompt
 
 Prompt:
-"Modify the analyzeSentiment function to gracefully handle Hugging Face API CORS errors.
-If the request fails, return a mock response that matches the HF API output format
-[[{ label: 'POSITIVE', score: number }]]."
+"Modify the analyzeSentiment function in app.js to gracefully handle Hugging Face API CORS errors, without changing any other parts of the app.
+
+**Requirements**:  
+- Keep the same function signature: async function analyzeSentiment(text).  
+- First, try to call the Hugging Face Inference API using fetch as before.  
+- Wrap the fetch and response handling in try/catch.  
+- If the request fails for any reason (CORS error, network error, non-OK status), do not throw an error. Instead, return a mock response that matches the Hugging Face API output format:  
+  [[{ label: 'POSITIVE', score: number }]]  
+- The mock response should use valid labels (POSITIVE, NEGATIVE, NEUTRAL) and a score between 0.5 and 0.99.  
+- The existing UI and displaySentiment function must continue to work without modification.
+
+**Expected output**:  
+- A single JavaScript code block with the updated implementation of analyzeSentiment, ready to be pasted into app.js, with no extra explanations outside the code block."
 
 ---
 
 #### Step 4. Additional bug fixing
 
 Prompt:
-"Review this JavaScript fetch request and check if Authorization header is correctly formatted."
+"Review this JavaScript fetch request used to call the Hugging Face Inference API and check if the Authorization header is correctly formatted as a Bearer token:
+
+`js
+async function analyzeSentiment(text) {
+    const response = await fetch(
+        'https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english',
+        {
+            headers: {
+                Authorization: apiToken ?
+                    Bearer ${apiToken}
+                    : undefined,
+                'Content-Type': 'application/json'
+            },
+            method: 'POST',
+            body: JSON.stringify({ inputs: text }),
+        }
+    );
+    // ...
+}
 
 ---
 
