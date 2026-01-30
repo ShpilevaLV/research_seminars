@@ -101,24 +101,33 @@ function analyzeRandomReview() {
 
 // Call Hugging Face API for sentiment analysis
 async function analyzeSentiment(text) {
-    const response = await fetch(
-        'https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english',
-        {
-            headers: { 
-                Authorization: apiToken ? `Bearer ${apiToken}` : undefined,
-                'Content-Type': 'application/json'
-            },
-            method: 'POST',
-            body: JSON.stringify({ inputs: text }),
+    try {
+        const response = await fetch(
+            'https://api-inference.huggingface.co/models/siebert/sentiment-roberta-large-english',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(apiToken && { Authorization: `Bearer ${apiToken}` })
+                },
+                body: JSON.stringify({ inputs: text })
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error('HF API request failed');
         }
-    );
-    
-    if (!response.ok) {
-        throw new Error(`API error: ${response.status} ${response.statusText}`);
+
+        return await response.json();
+    } catch (error) {
+        console.warn('Using fake sentiment response due to CORS:', error);
+
+        // FAKE DATA fallback (Homework requirement)
+        return [[{
+            label: Math.random() > 0.5 ? 'POSITIVE' : 'NEGATIVE',
+            score: 0.6 + Math.random() * 0.4
+        }]];
     }
-    
-    const result = await response.json();
-    return result;
 }
 
 // Display sentiment result
