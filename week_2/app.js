@@ -6,7 +6,7 @@ import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers
 let reviews = [];
 let apiToken = "";
 let sentimentPipeline = null;
-let currentReview = ""; // Для хранения текущего отзыва
+let currentReview = ""; // For current review
 
 // DOM elements
 const analyzeBtn = document.getElementById("analyze-btn");
@@ -117,7 +117,7 @@ function analyzeRandomReview() {
   }
 
   const selectedReview = reviews[Math.floor(Math.random() * reviews.length)];
-  currentReview = selectedReview; // Сохраняем текущий отзыв
+  currentReview = selectedReview; // Save current review
 
   // Display the review
   reviewText.textContent = selectedReview;
@@ -135,7 +135,7 @@ function analyzeRandomReview() {
       return result;
     })
     .then((result) => {
-      // Логируем данные в Google Sheets
+      // Logging data to Google Sheets
       logToGoogleSheets(selectedReview, result);
     })
     .catch((error) => {
@@ -207,16 +207,16 @@ function displaySentiment(result) {
   return { sentiment: label, confidence: score, sentimentBucket: sentiment };
 }
 
-// Логирование данных в Google Sheets
+// Logging data to Google Sheets
 async function logToGoogleSheets(review, sentimentResult) {
   try {
-    // Извлекаем данные из результата анализа
+    // Extracte data from analysis result
     const sentimentData = sentimentResult[0][0];
     const label = sentimentData.label.toUpperCase();
     const score = sentimentData.score;
     const confidence = (score * 100).toFixed(1) + '%';
     
-    // Собираем мета-информацию
+    // Extracte meta-information
     const meta = {
       model: "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
       inference_type: "local_transformers_js",
@@ -232,7 +232,7 @@ async function logToGoogleSheets(review, sentimentResult) {
       }
     };
 
-    // Подготавливаем данные для отправки
+    // Prepare data to sending
     const data = {
       ts_iso: new Date().toISOString(),
       review: review,
@@ -240,7 +240,7 @@ async function logToGoogleSheets(review, sentimentResult) {
       meta: JSON.stringify(meta)
     };
 
-    // Отправляем данные в Google Apps Script
+    // Send data to Google Apps Script
     const response = await fetch(GOOGLE_SCRIPT_URL, {
       method: "POST",
       mode: "no-cors", // Важно для Google Apps Script
@@ -254,7 +254,7 @@ async function logToGoogleSheets(review, sentimentResult) {
 
   } catch (error) {
     console.error("Error logging to Google Sheets:", error);
-    // Не показываем ошибку пользователю, чтобы не мешать основному функционалу
+    // Don't show errors to user
   }
 }
 
