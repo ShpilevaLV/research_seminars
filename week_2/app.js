@@ -4,8 +4,9 @@ import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers
 
 // Global variables
 let reviews = [];
-let apiToken = ""; // kept for UI compatibility, but not used with local inference
-let sentimentPipeline = null; // transformers.js text-classification pipeline
+let apiToken = "";
+let sentimentPipeline = null;
+let currentReview = ""; // Для хранения текущего отзыва
 
 // DOM elements
 const analyzeBtn = document.getElementById("analyze-btn");
@@ -14,42 +15,38 @@ const sentimentResult = document.getElementById("sentiment-result");
 const loadingElement = document.querySelector(".loading");
 const errorElement = document.getElementById("error-message");
 const apiTokenInput = document.getElementById("api-token");
-const statusElement = document.getElementById("status"); // optional status label for model loading
+const statusElement = document.getElementById("status");
+
+// Google Apps Script URL
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycby1jaeEN5OqioET59i9WSnN0LZfbrPeZqZaq4npu4sC_bYrnrj-JrH7dzfMUyW7Cawv/exec";
 
 // Initialize the app
 document.addEventListener("DOMContentLoaded", function () {
-  // Load the TSV file (Papa Parse)
   loadReviews();
-
-  // Set up event listeners
   analyzeBtn.addEventListener("click", analyzeRandomReview);
   apiTokenInput.addEventListener("change", saveApiToken);
-
-  // Load saved API token if exists (not used with local inference but kept for UI)
+  
   const savedToken = localStorage.getItem("hfApiToken");
   if (savedToken) {
     apiTokenInput.value = savedToken;
     apiToken = savedToken;
   }
-
-  // Initialize transformers.js sentiment model
+  
   initSentimentModel();
 });
 
-// Initialize transformers.js text-classification pipeline with a supported model
+// Initialize transformers.js sentiment model
 async function initSentimentModel() {
   try {
     if (statusElement) {
       statusElement.textContent = "Loading sentiment model...";
     }
-
-    // Use a transformers.js-supported text-classification model.
-    // Xenova/distilbert-base-uncased-finetuned-sst-2-english is a common choice.
+    
     sentimentPipeline = await pipeline(
       "text-classification",
       "Xenova/distilbert-base-uncased-finetuned-sst-2-english"
     );
-
+    
     if (statusElement) {
       statusElement.textContent = "Sentiment model ready";
     }
@@ -95,7 +92,7 @@ function loadReviews() {
     });
 }
 
-// Save API token to localStorage (UI compatibility; not used with local inference)
+// Save API token to localStorage
 function saveApiToken() {
   apiToken = apiTokenInput.value.trim();
   if (apiToken) {
@@ -119,8 +116,8 @@ function analyzeRandomReview() {
     return;
   }
 
-  const selectedReview =
-    reviews[Math.floor(Math.random() * reviews.length)];
+  const selectedReview = reviews[Math.floor(Math.random() * reviews.length)];
+  currentReview = selectedReview; // Сохраняем текущий отзыв
 
   // Display the review
   reviewText.textContent = selectedReview;
@@ -128,12 +125,19 @@ function analyzeRandomReview() {
   // Show loading state
   loadingElement.style.display = "block";
   analyzeBtn.disabled = true;
-  sentimentResult.innerHTML = ""; // Reset previous result
-  sentimentResult.className = "sentiment-result"; // Reset classes
+  sentimentResult.innerHTML = "";
+  sentimentResult.className = "sentiment-result";
 
-  // Call local sentiment model (transformers.js)
+  // Call local sentiment model
   analyzeSentiment(selectedReview)
-    .then((result) => displaySentiment(result))
+    .then((result) => {
+      displaySentiment(result);
+      return result;
+    })
+    .then((result) => {
+      // Логируем данные в Google Sheets
+      logToGoogleSheets(selectedReview, result);
+    })
     .catch((error) => {
       console.error("Error:", error);
       showError(error.message || "Failed to analyze sentiment.");
@@ -150,26 +154,21 @@ async function analyzeSentiment(text) {
     throw new Error("Sentiment model is not initialized.");
   }
 
-  // transformers.js text-classification pipeline returns:
-  // [{ label: 'POSITIVE', score: 0.99 }, ...]
   const output = await sentimentPipeline(text);
 
   if (!Array.isArray(output) || output.length === 0) {
     throw new Error("Invalid sentiment output from local model.");
   }
 
-  // Wrap to match [[{ label, score }]] shape expected by displaySentiment
   return [output];
 }
 
 // Display sentiment result
 function displaySentiment(result) {
-  // Default to neutral if we can't parse the result
   let sentiment = "neutral";
   let score = 0.5;
   let label = "NEUTRAL";
 
-  // Expected format: [[{label: 'POSITIVE', score: 0.99}]]
   if (
     Array.isArray(result) &&
     result.length > 0 &&
@@ -188,7 +187,6 @@ function displaySentiment(result) {
           ? sentimentData.score
           : 0.5;
 
-      // Determine sentiment bucket
       if (label === "POSITIVE" && score > 0.5) {
         sentiment = "positive";
       } else if (label === "NEGATIVE" && score > 0.5) {
@@ -205,6 +203,59 @@ function displaySentiment(result) {
         <i class="fas ${getSentimentIcon(sentiment)} icon"></i>
         <span>${label} (${(score * 100).toFixed(1)}% confidence)</span>
     `;
+  
+  return { sentiment: label, confidence: score, sentimentBucket: sentiment };
+}
+
+// Логирование данных в Google Sheets
+async function logToGoogleSheets(review, sentimentResult) {
+  try {
+    // Извлекаем данные из результата анализа
+    const sentimentData = sentimentResult[0][0];
+    const label = sentimentData.label.toUpperCase();
+    const score = sentimentData.score;
+    const confidence = (score * 100).toFixed(1) + '%';
+    
+    // Собираем мета-информацию
+    const meta = {
+      model: "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
+      inference_type: "local_transformers_js",
+      timestamp: new Date().toISOString(),
+      review_length: review.length,
+      review_preview: review.substring(0, 100) + (review.length > 100 ? "..." : ""),
+      client_info: {
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        platform: navigator.platform,
+        screen_resolution: `${window.screen.width}x${window.screen.height}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      }
+    };
+
+    // Подготавливаем данные для отправки
+    const data = {
+      ts_iso: new Date().toISOString(),
+      review: review,
+      sentiment: `${label} (${confidence})`,
+      meta: JSON.stringify(meta)
+    };
+
+    // Отправляем данные в Google Apps Script
+    const response = await fetch(GOOGLE_SCRIPT_URL, {
+      method: "POST",
+      mode: "no-cors", // Важно для Google Apps Script
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(data)
+    });
+
+    console.log("Data logged to Google Sheets:", data);
+
+  } catch (error) {
+    console.error("Error logging to Google Sheets:", error);
+    // Не показываем ошибку пользователю, чтобы не мешать основному функционалу
+  }
 }
 
 // Get appropriate icon for sentiment bucket
