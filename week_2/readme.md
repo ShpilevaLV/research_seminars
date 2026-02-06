@@ -7,6 +7,7 @@ You are an expert web developer.
 Take the existing sentiment analysis web app (GitHub Pages static site using transformers.js for local inference) and add automatic logging to Google Sheets.
 
 Current app: https://shpilevalv.github.io/research_seminars/week_2/
+
 Code: https://github.com/ShpilevaLV/research_seminars/tree/main/week_2
 
 ***
