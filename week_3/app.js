@@ -245,15 +245,25 @@ function displaySentiment(result) {
 
 function displayAction(decision) {
   if (!actionResult) return;
+  
+  let buttonHtml = '';
+  if (decision.actionCode === 'OFFER_COUPON') {
+    buttonHtml = '<button class="action-btn coupon-btn" onclick="alert(\'COUPON50 saved to clipboard!\')">Get 50% Off Coupon</button>';
+  } else if (decision.actionCode === 'REQUEST_FEEDBACK') {
+    buttonHtml = '<a href="#" class="action-link" onclick="openSurvey()">📝 Take Survey</a>';
+  } else if (decision.actionCode === 'ASK_REFERRAL') {
+    buttonHtml = '<button class="action-btn referral-btn" onclick="shareReferral()">⭐ Refer a Friend</button>';
+  }
+
   actionResult.style.display = "block";
   actionResult.style.backgroundColor = decision.uiColor + "20";
   actionResult.style.borderLeft = `4px solid ${decision.uiColor}`;
   actionResult.innerHTML = `
-    <p style="color: ${decision.uiColor}; font-weight: bold; margin: 0;">
-      <i class="fas fa-bolt" style="margin-right: 8px;"></i>
-      ${decision.uiMessage}
+    <p style="color: ${decision.uiColor}; font-weight: bold; margin: 0 0 10px 0;">
+      <i class="fas fa-bolt"></i> ${decision.uiMessage}
     </p>
-    <small style="color: #666;">Action: ${decision.actionCode}</small>
+    ${buttonHtml}
+    <small style="display: block; margin-top: 8px; color: #666;">Action: ${decision.actionCode}</small>
   `;
 }
 
