@@ -1,4 +1,5 @@
 // app.js (ES module version using transformers.js for local sentiment classification)
+// Updated with Automated Business Decision Logic and Action Logging
 
 import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6/dist/transformers.min.js";
 
@@ -12,12 +13,13 @@ let currentReview = ""; // For current review
 const analyzeBtn = document.getElementById("analyze-btn");
 const reviewText = document.getElementById("review-text");
 const sentimentResult = document.getElementById("sentiment-result");
+const actionResult = document.getElementById("action-result"); // NEW: action result container
 const loadingElement = document.querySelector(".loading");
 const errorElement = document.getElementById("error-message");
 const apiTokenInput = document.getElementById("api-token");
 const statusElement = document.getElementById("status");
 
-// Google Apps Script URL
+// Google Apps Script URL (updated to accept new column)
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzjolVleqxtDQ8rMGMonANgyz8yIxrKamThRaq61IwroReQMiuBe7O-i3mNFDjMvmNJ/exec";
 
 // Initialize the app
@@ -92,7 +94,7 @@ function loadReviews() {
     });
 }
 
-// Save API token to localStorage
+// Save API token to localStorage (kept for compatibility, though not used by local model)
 function saveApiToken() {
   apiToken = apiTokenInput.value.trim();
   if (apiToken) {
@@ -100,6 +102,52 @@ function saveApiToken() {
   } else {
     localStorage.removeItem("hfApiToken");
   }
+}
+
+/**
+ * Determines the appropriate business action based on sentiment analysis results.
+ * 
+ * Normalizes the AI output into a linear scale (0.0 to 1.0) to simplify
+ * threshold comparisons.
+ * 
+ * @param {number} confidence - The confidence score returned by the API (0.0 to 1.0).
+ * @param {string} label - The label returned by the API (e.g., "POSITIVE", "NEGATIVE").
+ * @returns {object} An object containing the action metadata (actionCode, uiMessage, uiColor).
+ */
+function determineBusinessAction(confidence, label) {
+    // 1. Normalize Score: Map everything to a 0 (Worst) to 1 (Best) scale.
+    // If Label is NEGATIVE, a high confidence means a VERY BAD score (near 0).
+    let normalizedScore = 0.5; // Default neutral
+
+    if (label === "POSITIVE") {
+        normalizedScore = confidence; // e.g., 0.9 -> 0.9 (Great)
+    } else if (label === "NEGATIVE") {
+        normalizedScore = 1.0 - confidence; // e.g., 0.9 conf -> 0.1 (Terrible)
+    }
+
+    // 2. Apply Business Thresholds
+    if (normalizedScore <= 0.4) {
+        // CASE: Critical Churn Risk
+        return {
+            actionCode: "OFFER_COUPON",
+            uiMessage: "We are truly sorry. Please accept this 50% discount coupon.",
+            uiColor: "#ef4444" // Red
+        };
+    } else if (normalizedScore < 0.7) {
+        // CASE: Ambiguous / Neutral
+        return {
+            actionCode: "REQUEST_FEEDBACK",
+            uiMessage: "Thank you! Could you tell us how we can improve?",
+            uiColor: "#6b7280" // Gray
+        };
+    } else {
+        // CASE: Happy Customer
+        return {
+            actionCode: "ASK_REFERRAL",
+            uiMessage: "Glad you liked it! Refer a friend and earn rewards.",
+            uiColor: "#3b82f6" // Blue
+        };
+    }
 }
 
 // Analyze a random review
@@ -127,16 +175,21 @@ function analyzeRandomReview() {
   analyzeBtn.disabled = true;
   sentimentResult.innerHTML = "";
   sentimentResult.className = "sentiment-result";
+  // Clear previous action result
+  if (actionResult) {
+    actionResult.style.display = "none";
+    actionResult.innerHTML = "";
+  }
 
   // Call local sentiment model
   analyzeSentiment(selectedReview)
     .then((result) => {
-      displaySentiment(result);
-      return result;
-    })
-    .then((result) => {
-      // Logging data to Google Sheets
-      logToGoogleSheets(selectedReview, result);
+      const sentimentData = displaySentiment(result);
+      // Determine business action from the sentiment data
+      const decision = determineBusinessAction(sentimentData.confidence, sentimentData.label);
+      displayAction(decision);  // Update UI with action message
+      // Log everything, including the action taken
+      logToGoogleSheets(selectedReview, result, decision.actionCode);
     })
     .catch((error) => {
       console.error("Error:", error);
@@ -163,7 +216,7 @@ async function analyzeSentiment(text) {
   return [output];
 }
 
-// Display sentiment result
+// Display sentiment result and return extracted label and confidence
 function displaySentiment(result) {
   let sentiment = "neutral";
   let score = 0.5;
@@ -207,16 +260,34 @@ function displaySentiment(result) {
   return { sentiment: label, confidence: score, sentimentBucket: sentiment };
 }
 
+/**
+ * Display the business action message in the UI.
+ * @param {object} decision - The decision object from determineBusinessAction.
+ */
+function displayAction(decision) {
+  if (!actionResult) return;
+  actionResult.style.display = "block";
+  actionResult.style.backgroundColor = decision.uiColor + "20"; // 20% opacity background
+  actionResult.style.borderLeft = `4px solid ${decision.uiColor}`;
+  actionResult.innerHTML = `
+    <p style="color: ${decision.uiColor}; font-weight: bold; margin: 0;">
+      <i class="fas fa-bolt" style="margin-right: 8px;"></i>
+      ${decision.uiMessage}
+    </p>
+    <small style="color: #666;">Action: ${decision.actionCode}</small>
+  `;
+}
+
 // Logging data to Google Sheets
-async function logToGoogleSheets(review, sentimentResult) {
+async function logToGoogleSheets(review, sentimentResult, actionTaken) {
   try {
-    // Extracte data from analysis result
+    // Extract data from analysis result
     const sentimentData = sentimentResult[0][0];
     const label = sentimentData.label.toUpperCase();
     const score = sentimentData.score;
     const confidence = (score * 100).toFixed(1) + '%';
     
-    // Extracte meta-information
+    // Extract meta-information
     const meta = {
       model: "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
       inference_type: "local_transformers_js",
@@ -232,18 +303,19 @@ async function logToGoogleSheets(review, sentimentResult) {
       }
     };
 
-    // Prepare data to sending
+    // Prepare data to send (including action_taken)
     const data = {
       ts_iso: new Date().toISOString(),
       review: review,
       sentiment: `${label} (${confidence})`,
-      meta: JSON.stringify(meta)
+      meta: JSON.stringify(meta),
+      action_taken: actionTaken  // NEW: business action code
     };
 
     // Send data to Google Apps Script
     const response = await fetch(GOOGLE_SCRIPT_URL, {
       method: "POST",
-      mode: "no-cors", // Важно для Google Apps Script
+      mode: "no-cors", // Important for Google Apps Script
       headers: {
         "Content-Type": "application/json"
       },
@@ -254,7 +326,7 @@ async function logToGoogleSheets(review, sentimentResult) {
 
   } catch (error) {
     console.error("Error logging to Google Sheets:", error);
-    // Don't show errors to user
+    // Silently fail – do not disturb the user
   }
 }
 
