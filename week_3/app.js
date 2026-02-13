@@ -1,5 +1,5 @@
 // app.js (ES module version using transformers.js for local sentiment classification)
-// Updated with Automated Business Decision Logic and Action Logging
+// UPDATED: Fixed label extraction for business logic
 
 import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.6/dist/transformers.min.js";
 
@@ -7,19 +7,19 @@ import { pipeline } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers
 let reviews = [];
 let apiToken = "";
 let sentimentPipeline = null;
-let currentReview = ""; // For current review
+let currentReview = "";
 
 // DOM elements
 const analyzeBtn = document.getElementById("analyze-btn");
 const reviewText = document.getElementById("review-text");
 const sentimentResult = document.getElementById("sentiment-result");
-const actionResult = document.getElementById("action-result"); // NEW: action result container
+const actionResult = document.getElementById("action-result");
 const loadingElement = document.querySelector(".loading");
 const errorElement = document.getElementById("error-message");
 const apiTokenInput = document.getElementById("api-token");
 const statusElement = document.getElementById("status");
 
-// Google Apps Script URL (updated to accept new column)
+// Google Apps Script URL
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxI4Yx0rFmnFd19NewIoLCk28NECZFpemxkLNKzzXWhmtIzTIs77ljOeTo8tMpZY8nQ/exec";
 
 // Initialize the app
@@ -54,9 +54,7 @@ async function initSentimentModel() {
     }
   } catch (error) {
     console.error("Failed to load sentiment model:", error);
-    showError(
-      "Failed to load sentiment model. Please check your network connection and try again."
-    );
+    showError("Failed to load sentiment model. Please check your network connection and try again.");
     if (statusElement) {
       statusElement.textContent = "Model load failed";
     }
@@ -94,7 +92,7 @@ function loadReviews() {
     });
 }
 
-// Save API token to localStorage (kept for compatibility, though not used by local model)
+// Save API token to localStorage
 function saveApiToken() {
   apiToken = apiTokenInput.value.trim();
   if (apiToken) {
@@ -104,48 +102,35 @@ function saveApiToken() {
   }
 }
 
-/**
- * Determines the appropriate business action based on sentiment analysis results.
- * 
- * Normalizes the AI output into a linear scale (0.0 to 1.0) to simplify
- * threshold comparisons.
- * 
- * @param {number} confidence - The confidence score returned by the API (0.0 to 1.0).
- * @param {string} label - The label returned by the API (e.g., "POSITIVE", "NEGATIVE").
- * @returns {object} An object containing the action metadata (actionCode, uiMessage, uiColor).
- */
+// --- BUSINESS LOGIC FUNCTION (Starter Code Snippet) ---
 function determineBusinessAction(confidence, label) {
     // 1. Normalize Score: Map everything to a 0 (Worst) to 1 (Best) scale.
-    // If Label is NEGATIVE, a high confidence means a VERY BAD score (near 0).
-    let normalizedScore = 0.5; // Default neutral
+    let normalizedScore = 0.5;
 
     if (label === "POSITIVE") {
-        normalizedScore = confidence; // e.g., 0.9 -> 0.9 (Great)
+        normalizedScore = confidence;
     } else if (label === "NEGATIVE") {
-        normalizedScore = 1.0 - confidence; // e.g., 0.9 conf -> 0.1 (Terrible)
+        normalizedScore = 1.0 - confidence;
     }
 
     // 2. Apply Business Thresholds
     if (normalizedScore <= 0.4) {
-        // CASE: Critical Churn Risk
         return {
             actionCode: "OFFER_COUPON",
             uiMessage: "We are truly sorry. Please accept this 50% discount coupon.",
-            uiColor: "#ef4444" // Red
+            uiColor: "#ef4444"
         };
     } else if (normalizedScore < 0.7) {
-        // CASE: Ambiguous / Neutral
         return {
             actionCode: "REQUEST_FEEDBACK",
             uiMessage: "Thank you! Could you tell us how we can improve?",
-            uiColor: "#6b7280" // Gray
+            uiColor: "#6b7280"
         };
     } else {
-        // CASE: Happy Customer
         return {
             actionCode: "ASK_REFERRAL",
             uiMessage: "Glad you liked it! Refer a friend and earn rewards.",
-            uiColor: "#3b82f6" // Blue
+            uiColor: "#3b82f6"
         };
     }
 }
@@ -165,31 +150,30 @@ function analyzeRandomReview() {
   }
 
   const selectedReview = reviews[Math.floor(Math.random() * reviews.length)];
-  currentReview = selectedReview; // Save current review
+  currentReview = selectedReview;
 
-  // Display the review
   reviewText.textContent = selectedReview;
 
-  // Show loading state
   loadingElement.style.display = "block";
   analyzeBtn.disabled = true;
   sentimentResult.innerHTML = "";
   sentimentResult.className = "sentiment-result";
-  // Clear previous action result
   if (actionResult) {
     actionResult.style.display = "none";
     actionResult.innerHTML = "";
   }
 
-  // Call local sentiment model
   analyzeSentiment(selectedReview)
     .then((result) => {
+      // --- FIX: Get the data from displaySentiment and use it ---
       const sentimentData = displaySentiment(result);
-      // Determine business action from the sentiment data
+      
+      // Now call the business logic with the CORRECT label and confidence
       const decision = determineBusinessAction(sentimentData.confidence, sentimentData.label);
-      displayAction(decision);  // Update UI with action message
-      // Log everything, including the action taken
+      
+      displayAction(decision);
       logToGoogleSheets(selectedReview, result, decision.actionCode);
+      // --- END OF FIX ---
     })
     .catch((error) => {
       console.error("Error:", error);
@@ -216,9 +200,9 @@ async function analyzeSentiment(text) {
   return [output];
 }
 
-// Display sentiment result and return extracted label and confidence
+// Display sentiment result and RETURN the extracted data
 function displaySentiment(result) {
-  let sentiment = "neutral";
+  let sentimentBucket = "neutral";
   let score = 0.5;
   let label = "NEUTRAL";
 
@@ -231,43 +215,38 @@ function displaySentiment(result) {
     const sentimentData = result[0][0];
 
     if (sentimentData && typeof sentimentData === "object") {
-      label =
-        typeof sentimentData.label === "string"
+      label = typeof sentimentData.label === "string"
           ? sentimentData.label.toUpperCase()
           : "NEUTRAL";
-      score =
-        typeof sentimentData.score === "number"
+      score = typeof sentimentData.score === "number"
           ? sentimentData.score
           : 0.5;
 
       if (label === "POSITIVE" && score > 0.5) {
-        sentiment = "positive";
+        sentimentBucket = "positive";
       } else if (label === "NEGATIVE" && score > 0.5) {
-        sentiment = "negative";
+        sentimentBucket = "negative";
       } else {
-        sentiment = "neutral";
+        sentimentBucket = "neutral";
       }
     }
   }
 
   // Update UI
-  sentimentResult.classList.add(sentiment);
+  sentimentResult.classList.add(sentimentBucket);
   sentimentResult.innerHTML = `
-        <i class="fas ${getSentimentIcon(sentiment)} icon"></i>
+        <i class="fas ${getSentimentIcon(sentimentBucket)} icon"></i>
         <span>${label} (${(score * 100).toFixed(1)}% confidence)</span>
     `;
   
-  return { sentiment: label, confidence: score, sentimentBucket: sentiment };
+  // --- IMPORTANT: Return the data needed for the next step ---
+  return { label: label, confidence: score, bucket: sentimentBucket };
 }
 
-/**
- * Display the business action message in the UI.
- * @param {object} decision - The decision object from determineBusinessAction.
- */
 function displayAction(decision) {
   if (!actionResult) return;
   actionResult.style.display = "block";
-  actionResult.style.backgroundColor = decision.uiColor + "20"; // 20% opacity background
+  actionResult.style.backgroundColor = decision.uiColor + "20";
   actionResult.style.borderLeft = `4px solid ${decision.uiColor}`;
   actionResult.innerHTML = `
     <p style="color: ${decision.uiColor}; font-weight: bold; margin: 0;">
@@ -278,16 +257,14 @@ function displayAction(decision) {
   `;
 }
 
-// Logging data to Google Sheets
+// Logging data to Google Sheets (Action column is already correct)
 async function logToGoogleSheets(review, sentimentResult, actionTaken) {
   try {
-    // Extract data from analysis result
     const sentimentData = sentimentResult[0][0];
     const label = sentimentData.label.toUpperCase();
     const score = sentimentData.score;
     const confidence = (score * 100).toFixed(1) + '%';
     
-    // Extract meta-information
     const meta = {
       model: "Xenova/distilbert-base-uncased-finetuned-sst-2-english",
       inference_type: "local_transformers_js",
@@ -303,22 +280,18 @@ async function logToGoogleSheets(review, sentimentResult, actionTaken) {
       }
     };
 
-    // Prepare data to send (including action_taken)
     const data = {
       ts_iso: new Date().toISOString(),
       review: review,
       sentiment: `${label} (${confidence})`,
       meta: JSON.stringify(meta),
-      action_taken: actionTaken  // NEW: business action code
+      action_taken: actionTaken
     };
 
-    // Send data to Google Apps Script
-    const response = await fetch(GOOGLE_SCRIPT_URL, {
+    await fetch(GOOGLE_SCRIPT_URL, {
       method: "POST",
-      mode: "no-cors", // Important for Google Apps Script
-      headers: {
-        "Content-Type": "application/json"
-      },
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
 
@@ -326,29 +299,22 @@ async function logToGoogleSheets(review, sentimentResult, actionTaken) {
 
   } catch (error) {
     console.error("Error logging to Google Sheets:", error);
-    // Silently fail – do not disturb the user
   }
 }
 
-// Get appropriate icon for sentiment bucket
 function getSentimentIcon(sentiment) {
   switch (sentiment) {
-    case "positive":
-      return "fa-thumbs-up";
-    case "negative":
-      return "fa-thumbs-down";
-    default:
-      return "fa-question-circle";
+    case "positive": return "fa-thumbs-up";
+    case "negative": return "fa-thumbs-down";
+    default: return "fa-question-circle";
   }
 }
 
-// Show error message
 function showError(message) {
   errorElement.textContent = message;
   errorElement.style.display = "block";
 }
 
-// Hide error message
 function hideError() {
   errorElement.style.display = "none";
 }
