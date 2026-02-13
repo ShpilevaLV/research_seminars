@@ -20,7 +20,7 @@ const apiTokenInput = document.getElementById("api-token");
 const statusElement = document.getElementById("status");
 
 // Google Apps Script URL (updated to accept new column)
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzjolVleqxtDQ8rMGMonANgyz8yIxrKamThRaq61IwroReQMiuBe7O-i3mNFDjMvmNJ/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz6cl92DC1F1ZAJLzR-9nOKhDDivgkXukO1i8VN5Be_glIMUOXLdjtxG8YsDRflO4OL/exec";
 
 // Initialize the app
 document.addEventListener("DOMContentLoaded", function () {
