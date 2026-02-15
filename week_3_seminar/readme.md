@@ -72,9 +72,3 @@ graph TD
 - trade_log.csv – full trade history
 - metrics.csv – performance summary
 - README.md – this file
-
-## 🚨 Rules
-
-1.  **No Plagiarism:** Copying code from other teams or using pre-made strategies from the internet will result in a 0 score.
-2.  **No Data Manipulation:** Manually editing `trade_log.csv` or `metrics.csv` to fake results is prohibited. (We verify using your submitted `workflow.json`.)
-3.  **Strict Deadline:** Commits pushed after Monday midnight will not be evaluated.
