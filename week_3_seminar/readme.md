@@ -69,7 +69,7 @@ graph TD
 
 ## 📁 Repository Contents
 
-- README.md              ← Strategy Documentation (Must include Mermaid Chart)
-- workflow.json          ← Your modified n8n workflow file
-- trade_log.csv          ← Backtest results (Transaction history)
-- metrics.csv            ← Backtest results (Performance summary)
+- **README.md**              ← Strategy Documentation
+- **workflow.json**          ← Your modified n8n workflow file
+- **trade_log.csv**          ← Backtest results (Transaction history)
+- **metrics.csv**            ← Backtest results (Performance summary)
