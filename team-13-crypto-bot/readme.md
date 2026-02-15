@@ -22,15 +22,15 @@ This ensures we only enter trades with a high probability of success, resulting 
 ### Decision Flowchart (Mermaid)
 ```mermaid
 graph TD
-    Start[Market Data Input] --> ComputeScore[Calculate Score:<br/>Sentiment + RSI + MACD + BB + Volume + Volatility + Trend]
+    Start[Market Data Input] --> ComputeScore[Calculate Score: Sentiment + RSI + MACD + BB + Volume + Volatility + Trend]
     ComputeScore --> CheckPos{In position?}
     
-    CheckPos -->|Yes| ExitCheck{Check exit conditions:<br/>- Negative sentiment >0.7<br/>- RSI >70<br/>- Price < MA20<br/>- Stop loss 8%<br/>- Take profit 25%<br/>- Days ≥7}
+    CheckPos -->|Yes| ExitCheck{Check exit conditions}
     ExitCheck -->|Any true| Sell[Sell]
-    ExitCheck -->|None| ImplicitHold[No exit signal] --> ConvertToBuy[Convert to Buy<br/>(stay in position)]
+    ExitCheck -->|None| ConvertToBuy[Convert to Buy (stay in position)]
     
     CheckPos -->|No| CheckVolume{Volume change >0?}
-    CheckVolume -->|No| ConvertToSell[Convert to Sell<br/>(stay out of position)]
+    CheckVolume -->|No| ConvertToSell[Convert to Sell (stay out)]
     CheckVolume -->|Yes| CheckScore{Score ≥20?}
     CheckScore -->|Yes| Buy[Buy]
     CheckScore -->|No| CheckAlt{Strong positive + RSI <40?}
