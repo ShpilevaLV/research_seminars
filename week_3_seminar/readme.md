@@ -1,6 +1,5 @@
 # 🏆 Crypto Trading AI Bot - Team Competition
 
-```markdown
 # Team 13 - Crypto Trading Strategy
 
 ## 👥 Members
@@ -75,8 +74,6 @@ graph TD
 - trade_log.csv – full trade history
 - metrics.csv – performance summary
 - README.md – this file
-
-```
 
 ## 🚨 Rules
 
