@@ -1,5 +1,3 @@
-# 🏆 Crypto Trading AI Bot - Team Competition
-
 # Team 13 - Crypto Trading Strategy
 
 ## 👥 Members
