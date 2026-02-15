@@ -70,6 +70,6 @@ graph TD
 ## 📁 Repository Contents
 
 - **readme.md**              ← Strategy Documentation
-- **workflow.json**          ← Your modified n8n workflow file
+- **workflow.json**          ← n8n workflow with final scoring logic (v14)
 - **trade_log.csv**          ← Backtest results (Transaction history)
 - **metrics.csv**            ← Backtest results (Performance summary)
