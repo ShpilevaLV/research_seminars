@@ -69,8 +69,7 @@ graph TD
 
 ## 📁 Repository Contents
 
-team-13-crypto-bot/
-├── README.md              ← Strategy Documentation
-├── workflow.json          ← n8n workflow with final scoring logic (v14)
-├── trade_log.csv          ← Backtest results (Transaction history)
-└── metrics.csv            ← Backtest results (Performance summary)
+- README.md              ← Strategy Documentation (Must include Mermaid Chart)
+- workflow.json          ← Your modified n8n workflow file
+- trade_log.csv          ← Backtest results (Transaction history)
+- metrics.csv            ← Backtest results (Performance summary)
