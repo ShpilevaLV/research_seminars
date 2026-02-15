@@ -3,7 +3,7 @@
 ## 👥 Members
 - Valerii Bobrov - 43
 - Anna Grishkina - 44
-- Dmitrii Orel - 45
+- Dmitrii Oryol - 45
 - Lina Shpileva - 46
 
 ## 🧠 Strategy Overview
