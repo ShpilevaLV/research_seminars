@@ -63,9 +63,9 @@ graph TD
 
 **Comparison with baseline:**
 
-- Baseline Sharpe: -0.92 (negative). Our strategy turned it into a strong positive 1.69.
-- Baseline Return: -9.16%. We achieved +9.01%.
-- Baseline Drawdown: -23.71%. We reduced it to -8.22%.
+- **Baseline Sharpe**: -0.92 (negative). Our strategy turned it into a strong positive 1.69.
+- **Baseline Return**: -9.16%. We achieved +9.01%.
+- **Baseline Drawdown**: -23.71%. We reduced it to -8.22%.
 
 ## 📁 Repository Contents
 
