@@ -68,7 +68,9 @@ graph TD
 - Baseline Drawdown: -23.71%. We reduced it to -8.22%.
 
 ## 📁 Repository Contents
-- workflow.json – n8n workflow with final scoring logic (v14)
-- trade_log.csv – full trade history
-- metrics.csv – performance summary
-- README.md – this file
+
+team-13-crypto-bot/
+├── README.md              ← Strategy Documentation
+├── workflow.json          ← n8n workflow with final scoring logic (v14)
+├── trade_log.csv          ← Backtest results (Transaction history)
+└── metrics.csv            ← Backtest results (Performance summary)
