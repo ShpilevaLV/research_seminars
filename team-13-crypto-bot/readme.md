@@ -27,10 +27,10 @@ graph TD
     
     CheckPos -->|Yes| ExitCheck{Check exit conditions}
     ExitCheck -->|Any true| Sell[Sell]
-    ExitCheck -->|None| ConvertToBuy[Convert to Buy (stay in position)]
+    ExitCheck -->|None| ConvertToBuy[Convert to Buy in position]
     
     CheckPos -->|No| CheckVolume{Volume change >0?}
-    CheckVolume -->|No| ConvertToSell[Convert to Sell (stay out)]
+    CheckVolume -->|No| ConvertToSell[Convert to Sell out of position]
     CheckVolume -->|Yes| CheckScore{Score >=20?}
     CheckScore -->|Yes| Buy[Buy]
     CheckScore -->|No| CheckAlt{Strong positive + RSI <40?}
