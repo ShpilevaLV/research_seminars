@@ -31,7 +31,7 @@ graph TD
     
     CheckPos -->|No| CheckVolume{Volume change >0?}
     CheckVolume -->|No| ConvertToSell[Convert to Sell (stay out)]
-    CheckVolume -->|Yes| CheckScore{Score ≥20?}
+    CheckVolume -->|Yes| CheckScore{Score >=20?}
     CheckScore -->|Yes| Buy[Buy]
     CheckScore -->|No| CheckAlt{Strong positive + RSI <40?}
     CheckAlt -->|Yes| Buy
