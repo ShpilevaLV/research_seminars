@@ -46,7 +46,7 @@ graph TD
 ```
 
 ### Performance Analysis
-*   **Sharpe Ratio:** **1.69** (Most Important!)
+*   **Sharpe Ratio:** **1.69**
 *   Total Return: +9.01%
 *   Max Drawdown: -8.22%
 
