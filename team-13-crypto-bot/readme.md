@@ -27,22 +27,25 @@ graph TD
     
     CheckPos -->|Yes| ExitCheck{Check exit conditions:<br/>- Negative sentiment >0.7<br/>- RSI >70<br/>- Price < MA20<br/>- Stop loss 8%<br/>- Take profit 25%<br/>- Days ≥7}
     ExitCheck -->|Any true| Sell[Sell]
-    ExitCheck -->|None| Hold[Continue holding]
+    ExitCheck -->|None| ImplicitHold[No exit signal] --> ConvertToBuy[Convert to Buy<br/>(stay in position)]
     
     CheckPos -->|No| CheckVolume{Volume change >0?}
-    CheckVolume -->|No| Hold
+    CheckVolume -->|No| ConvertToSell[Convert to Sell<br/>(stay out of position)]
     CheckVolume -->|Yes| CheckScore{Score ≥20?}
     CheckScore -->|Yes| Buy[Buy]
     CheckScore -->|No| CheckAlt{Strong positive + RSI <40?}
     CheckAlt -->|Yes| Buy
-    CheckAlt -->|No| Hold
+    CheckAlt -->|No| ConvertToSell
     
     Buy --> InPos[Enter position]
     Sell --> OutPos[Exit position]
+    ConvertToBuy --> InPos
+    ConvertToSell --> OutPos
     
     style Buy fill:#d4edda,stroke:#28a745
     style Sell fill:#f8d7da,stroke:#dc3545
-    style Hold fill:#e2e3e5,stroke:#6c757d
+    style ConvertToBuy fill:#d4edda,stroke:#28a745,stroke-dasharray: 5 5
+    style ConvertToSell fill:#f8d7da,stroke:#dc3545,stroke-dasharray: 5 5
 ```
 
 ### Performance Analysis
